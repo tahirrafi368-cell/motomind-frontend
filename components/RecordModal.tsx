@@ -83,8 +83,8 @@ export default function RecordModal({ record, onClose }: RecordModalProps) {
     try {
       const token = await auth.currentUser?.getIdToken()
       const url = record 
-        ? `http://localhost:5000/api/records/${record.id}`
-        : 'http://localhost:5000/api/records'
+        ? `https://motomind-backend.zarea.site/api/records/${record.id}`
+        : 'https://motomind-backend.zarea.site/api/records'
       
       const method = record ? 'PUT' : 'POST'
       
@@ -106,7 +106,7 @@ export default function RecordModal({ record, onClose }: RecordModalProps) {
       if (response.ok) {
         if (finalize && !record) {
           const data = await response.json()
-          await fetch(`http://localhost:5000/api/records/${data.id}/finalize`, {
+          await fetch(`https://motomind-backend.zarea.site/api/records/${data.id}/finalize`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -332,4 +332,5 @@ export default function RecordModal({ record, onClose }: RecordModalProps) {
       </div>
     </div>
   )
+
 }
