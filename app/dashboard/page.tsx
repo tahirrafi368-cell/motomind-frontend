@@ -61,7 +61,7 @@ export default function DashboardPage() {
   const fetchRecords = async () => {
     try {
       const token = await auth.currentUser?.getIdToken()
-      const response = await fetch(`https://motomind-backend.zarea.site/api/records?page=${page}`, {
+      const response = await fetch(`https://motomind-backend-production.up.railway.app/api/records?page=${page}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await response.json()
@@ -77,7 +77,7 @@ export default function DashboardPage() {
     if (!confirm("Finalize this record? You won't be able to edit it anymore.")) return
     try {
       const token = await auth.currentUser?.getIdToken()
-      await fetch(`https://motomind-backend.zarea.site/api/records/${id}/finalize`, {
+      await fetch(`https://motomind-backend-production.up.railway.app/api/records/${id}/finalize`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -90,7 +90,7 @@ export default function DashboardPage() {
   const handleSendBill = async (id: string) => {
     try {
       const token = await auth.currentUser?.getIdToken()
-      const response = await fetch(`https://motomind-backend.zarea.site/api/records/${id}/send`, {
+      const response = await fetch(`https://motomind-backend-production.up.railway.app/api/records/${id}/send`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -108,7 +108,7 @@ export default function DashboardPage() {
 
   const handleConnect = async () => {
     const token = await auth.currentUser?.getIdToken()
-    await fetch('https://motomind-backend.zarea.site/api/whatsapp/connect', {
+    await fetch('https://motomind-backend-production.up.railway.app/api/whatsapp/connect', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -117,7 +117,7 @@ export default function DashboardPage() {
   const handleCloseQrModal = async () => {
     setShowQrModal(false)
     const token = await auth.currentUser?.getIdToken()
-    await fetch('https://motomind-backend.zarea.site/api/whatsapp/clear-qr', {
+    await fetch('https://motomind-backend-production.up.railway.app/api/whatsapp/clear-qr', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -237,4 +237,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
 
