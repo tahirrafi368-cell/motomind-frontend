@@ -15,6 +15,7 @@ interface ServiceRecord {
   currentDate: string
   nextServiceDate: string
   finalized: boolean
+  totalAmount?: number // Added for dashboard visibility
 }
 
 export default function DashboardPage() {
@@ -71,8 +72,6 @@ export default function DashboardPage() {
     }
   }
 
-  // --- NEW ACTIONS ---
-
   const handleFinalize = async (id: string) => {
     if (!confirm("Finalize this record? You won't be able to edit it anymore.")) return
     try {
@@ -81,7 +80,7 @@ export default function DashboardPage() {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      fetchRecords() // Refresh table
+      fetchRecords() 
     } catch (error) {
       alert("Failed to finalize record")
     }
@@ -137,7 +136,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-gray-800">MotoMind Dashboard</h1>
           <div className="flex items-center space-x-4">
             <span className={`text-xs font-bold px-3 py-1 rounded-full ${whatsappStatus.status === 'connected' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-               WA: {whatsappStatus.status.toUpperCase()}
+                WA: {whatsappStatus.status.toUpperCase()}
             </span>
             <button onClick={handleLogout} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
               Logout
@@ -165,37 +164,42 @@ export default function DashboardPage() {
           <table className="w-full text-left">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Phone</th>
-                <th className="px-4 py-3">Bike</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3 border-b">Customer</th>
+                <th className="px-4 py-3 border-b">Bike</th>
+                <th className="px-4 py-3 border-b">Total Bill</th>
+                <th className="px-4 py-3 border-b">Status</th>
+                <th className="px-4 py-3 border-b text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {records.map((record) => (
                 <tr key={record.id} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{record.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{record.phone}</td>
-                  <td className="px-4 py-3">{record.bikeType}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${record.finalized ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                      {record.finalized ? 'FINALIZED' : 'DRAFT'}
+                    <p className="font-bold text-gray-800">{record.name}</p>
+                    <p className="text-xs text-gray-500">{record.phone}</p>
+                  </td>
+                  <td className="px-4 py-3 text-sm">{record.bikeType}</td>
+                  <td className="px-4 py-3 font-mono font-bold text-blue-700">
+                    Rs. {record.totalAmount?.toLocaleString() || 0}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${record.finalized ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      {record.finalized ? 'Finalized' : 'Draft'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right space-x-2">
                     {!record.finalized ? (
                       <>
-                        <button onClick={() => { setEditingRecord(record); setShowRecordModal(true); }} className="text-blue-600 hover:text-blue-800 text-sm font-medium">Edit</button>
+                        <button onClick={() => { setEditingRecord(record); setShowRecordModal(true); }} className="text-blue-600 hover:underline text-sm font-medium">Edit</button>
                         <button onClick={() => handleFinalize(record.id)} className="bg-gray-800 text-white px-3 py-1 rounded text-xs hover:bg-black">Finalize</button>
                       </>
                     ) : (
                       <button 
                         onClick={() => handleSendBill(record.id)} 
                         disabled={whatsappStatus.status !== 'connected'}
-                        className={`px-3 py-1 rounded text-xs text-white ${whatsappStatus.status === 'connected' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'}`}
+                        className={`px-3 py-1 rounded text-xs text-white font-bold ${whatsappStatus.status === 'connected' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'}`}
                       >
-                        Send Bill
+                        Send WhatsApp Bill
                       </button>
                     )}
                   </td>
@@ -203,7 +207,7 @@ export default function DashboardPage() {
               ))}
               {records.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-gray-500">No records found. Click "+ Add Record" to start.</td>
+                  <td colSpan={5} className="px-4 py-10 text-center text-gray-500 italic">No records found. Click "+ Add Record" to start.</td>
                 </tr>
               )}
             </tbody>
@@ -211,7 +215,6 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* Record Modal */}
       {showRecordModal && (
         <RecordModal 
           record={editingRecord} 
@@ -219,12 +222,11 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* QR Modal */}
       {showQrModal && whatsappStatus.qr && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
           <div className="bg-white p-8 rounded-2xl max-w-sm text-center shadow-2xl">
             <h3 className="text-xl font-bold mb-2">Scan WhatsApp QR</h3>
-            <p className="text-gray-500 mb-6 text-sm">Use WhatsApp on your phone to scan this code.</p>
+            <p className="text-gray-500 mb-6 text-sm text-balance">Use WhatsApp on your phone to scan this code to enable bill sending.</p>
             <div className="bg-gray-50 p-4 rounded-xl mb-6">
                <img src={whatsappStatus.qr} alt="WhatsApp QR" className="mx-auto w-56 h-56" />
             </div>
@@ -237,5 +239,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-
