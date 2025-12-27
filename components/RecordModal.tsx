@@ -36,7 +36,7 @@ const PARTS_LIST = [
   { id: 8, name: 'GENUINE OIL CG125', suggested: 945 },
   { id: 9, name: 'GENUINE OIL CD70', suggested: 670 },
   { id: 10, name: 'GENUINE OIL CD100', suggested: 750 },
-  { id: 11, name: 'ELEMENT AIR CLEANER', suggested: 160 : },
+  { id: 11, name: 'ELEMENT AIR CLEANER', suggested: 160 },
   { id: 12, name: 'CHAIN SPROCKET KIT', suggested: 3960 },
   { id: 13, name: 'CHAIN SPROCKET KIT', suggested: 2180 },
   { id: 14, name: 'CABLE FRONT BRAKE', suggested: 510 },
@@ -295,3 +295,4 @@ export default function RecordModal({ record, onClose }: RecordModalProps) {
     </div>
   )
 }
+
