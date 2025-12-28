@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react' 
+import { useState, useEffect } from 'react' 
 import { useRouter } from 'next/navigation'
 import { auth, db } from '@/lib/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
@@ -15,7 +15,7 @@ interface ServiceRecord {
   currentDate: string
   nextServiceDate: string
   finalized: boolean
-  totalAmount?: number
+  totalAmount?: number // Added for dashboard visibility
 }
 
 export default function DashboardPage() {
@@ -24,50 +24,18 @@ export default function DashboardPage() {
   const [records, setRecords] = useState<ServiceRecord[]>([])
   const [showRecordModal, setShowRecordModal] = useState(false)
   const [editingRecord, setEditingRecord] = useState<ServiceRecord | null>(null)
-  
-  // --- New State for Enhancements ---
   const [page, setPage] = useState(1)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const limit = 10
   
   const [whatsappStatus, setWhatsappStatus] = useState({ status: 'disconnected', qr: null })
   const [showQrModal, setShowQrModal] = useState(false)
   
   const router = useRouter()
 
-  // Centralized fetch logic
-  const fetchRecords = useCallback(async () => {
-    if (!auth.currentUser) return
-    try {
-      const token = await auth.currentUser.getIdToken()
-      
-      // Constructing URL with sorting, pagination, and date filters
-      let url = `https://motomind-backend-production.up.railway.app/api/records?page=${page}&limit=${limit}&sort=desc`
-      
-      if (startDate) url += `&startDate=${startDate}`
-      if (endDate) url += `&endDate=${endDate}`
-
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-      
-      // Ensure local sorting as a fallback (Newest on Top)
-      const sorted = (data.records || []).sort((a: any, b: any) => 
-        new Date(b.currentDate).getTime() - new Date(a.currentDate).getTime()
-      )
-      
-      setRecords(sorted)
-    } catch (error) {
-      console.error('Error fetching records:', error)
-    }
-  }, [page, startDate, endDate])
-
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
       if (u) {
         setUser(u)
+        fetchRecords()
       } else {
         router.push('/login')
       }
@@ -75,11 +43,6 @@ export default function DashboardPage() {
     })
     return () => unsubscribeAuth()
   }, [router])
-
-  // Trigger fetch when user, page, or filters change
-  useEffect(() => {
-    if (user) fetchRecords()
-  }, [user, fetchRecords])
 
   useEffect(() => {
     if (!user) return
@@ -95,6 +58,19 @@ export default function DashboardPage() {
     })
     return () => unsubSnap()
   }, [user])
+
+  const fetchRecords = async () => {
+    try {
+      const token = await auth.currentUser?.getIdToken()
+      const response = await fetch(`https://motomind-backend-production.up.railway.app/api/records?page=${page}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await response.json()
+      setRecords(data.records || [])
+    } catch (error) {
+      console.error('Error fetching records:', error)
+    }
+  }
 
   const handleFinalize = async (id: string) => {
     if (!confirm("Finalize this record? You won't be able to edit it anymore.")) return
@@ -170,71 +146,37 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Filtering & Actions Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            <h2 className="text-xl font-semibold">Service Records</h2>
-            <p className="text-xs text-gray-500">Showing 10 records per page</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Date Range Filters */}
-            <div className="flex items-center gap-2 bg-white border rounded-lg px-3 py-1 shadow-sm">
-              <input 
-                type="date" 
-                value={startDate} 
-                onChange={(e) => { setPage(1); setStartDate(e.target.value); }}
-                className="text-sm border-none focus:ring-0 cursor-pointer"
-              />
-              <span className="text-gray-400 text-xs">to</span>
-              <input 
-                type="date" 
-                value={endDate} 
-                onChange={(e) => { setPage(1); setEndDate(e.target.value); }}
-                className="text-sm border-none focus:ring-0 cursor-pointer"
-              />
-              {(startDate || endDate) && (
-                <button 
-                  onClick={() => { setStartDate(''); setEndDate(''); setPage(1); }}
-                  className="ml-2 text-xs text-red-500 hover:underline"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Service Records</h2>
+          <div className="flex space-x-4">
             {whatsappStatus.status !== 'connected' && (
-              <button onClick={handleConnect} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm">
+              <button onClick={handleConnect} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
                 Connect WhatsApp
               </button>
             )}
-            <button onClick={() => { setEditingRecord(null); setShowRecordModal(true); }} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 text-sm">
+            <button onClick={() => { setEditingRecord(null); setShowRecordModal(true); }} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
               + Add Record
             </button>
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-4 py-3 border-b text-sm font-bold">Date</th>
-                <th className="px-4 py-3 border-b text-sm font-bold">Customer</th>
-                <th className="px-4 py-3 border-b text-sm font-bold">Bike</th>
-                <th className="px-4 py-3 border-b text-sm font-bold">Total Bill</th>
-                <th className="px-4 py-3 border-b text-sm font-bold">Status</th>
-                <th className="px-4 py-3 border-b text-right text-sm font-bold">Actions</th>
+                <th className="px-4 py-3 border-b">Customer</th>
+                <th className="px-4 py-3 border-b">Bike</th>
+                <th className="px-4 py-3 border-b">Total Bill</th>
+                <th className="px-4 py-3 border-b">Status</th>
+                <th className="px-4 py-3 border-b text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {records.map((record) => (
-                <tr key={record.id} className="border-t hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-xs font-medium text-gray-600">
-                    {new Date(record.currentDate).toLocaleDateString()}
-                  </td>
+                <tr key={record.id} className="border-t hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <p className="font-bold text-gray-800">{record.name}</p>
-                    <p className="text-[10px] text-gray-500">{record.phone}</p>
+                    <p className="text-xs text-gray-500">{record.phone}</p>
                   </td>
                   <td className="px-4 py-3 text-sm">{record.bikeType}</td>
                   <td className="px-4 py-3 font-mono font-bold text-blue-700">
@@ -265,36 +207,11 @@ export default function DashboardPage() {
               ))}
               {records.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-gray-500 italic">
-                    No records found for this period.
-                  </td>
+                  <td colSpan={5} className="px-4 py-10 text-center text-gray-500 italic">No records found. Click "+ Add Record" to start.</td>
                 </tr>
               )}
             </tbody>
           </table>
-
-          {/* Pagination Controls */}
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t">
-            <div className="text-sm text-gray-700">
-              Showing page <span className="font-bold">{page}</span>
-            </div>
-            <div className="flex space-x-2">
-              <button 
-                disabled={page === 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-4 py-2 border rounded-md text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-              >
-                Previous
-              </button>
-              <button 
-                disabled={records.length < limit}
-                onClick={() => setPage(p => p + 1)}
-                className="px-4 py-2 border rounded-md text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
         </div>
       </main>
 
